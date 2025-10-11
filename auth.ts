@@ -19,7 +19,7 @@ async function getUser(email: string) {
 }
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET, 
   trustHost: true,
   pages: {
     signIn: '/login',
