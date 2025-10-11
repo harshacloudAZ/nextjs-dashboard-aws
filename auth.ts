@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { Pool } from 'pg';
 
 const pool = new Pool({
