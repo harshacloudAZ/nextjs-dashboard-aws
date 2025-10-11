@@ -2,17 +2,16 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const prisma = new PrismaClient();
 
 async function getUser(email: string) {
   try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    return result.rows[0];
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+    return user;
   } catch (error) {
     console.error('Database error:', error);
     return null;
