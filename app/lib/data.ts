@@ -178,35 +178,34 @@ export async function fetchCustomers() {
   }
 }
 
-export async function fetchFilteredCustomers(query: string) {
+export async function fetchCardData() {
   try {
-    const data = await prisma.$queryRaw<CustomersTableType[]>`
-		SELECT
-		  customers.id,
-		  customers.name,
-		  customers.email,
-		  customers.image_url,
-		  COUNT(invoices.id) AS total_invoices,
-		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-		FROM customers
-		LEFT JOIN invoices ON customers.id = invoices.customer_id
-		WHERE
-		  customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
-		GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		ORDER BY customers.name ASC
-	  `;
+    const invoiceCountPromise = prisma.$queryRaw`SELECT COUNT(*)::int FROM invoices`;
+    const customerCountPromise = prisma.$queryRaw`SELECT COUNT(*)::int FROM customers`;
+    const invoiceStatusPromise = prisma.$queryRaw`SELECT
+         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END)::bigint AS "paid",
+         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END)::bigint AS "pending"
+         FROM invoices`;
 
-    const customers = data.map((customer) => ({
-      ...customer,
-      total_pending: formatCurrency(customer.total_pending),
-      total_paid: formatCurrency(customer.total_paid),
-    }));
+    const data: any = await Promise.all([
+      invoiceCountPromise,
+      customerCountPromise,
+      invoiceStatusPromise,
+    ]);
 
-    return customers;
-  } catch (err) {
-    console.error('Database Error:', err);
-    throw new Error('Failed to fetch customer table.');
+    const numberOfInvoices = Number(data[0][0]?.count ?? 0);
+    const numberOfCustomers = Number(data[1][0]?.count ?? 0);
+    const totalPaidInvoices = formatCurrency(Number(data[2][0]?.paid ?? 0));
+    const totalPendingInvoices = formatCurrency(Number(data[2][0]?.pending ?? 0));
+
+    return {
+      numberOfCustomers,
+      numberOfInvoices,
+      totalPaidInvoices,
+      totalPendingInvoices,
+    };
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch card data.');
   }
 }
