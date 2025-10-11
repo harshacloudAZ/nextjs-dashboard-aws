@@ -35,7 +35,10 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log('🔍 Login attempt for:', credentials?.email);
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ Missing credentials');
           return null;
         }
 
@@ -44,22 +47,33 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           .safeParse(credentials);
 
         if (!parsedCredentials.success) {
+          console.log('❌ Validation failed');
           return null;
         }
 
         const { email, password } = parsedCredentials.data;
+        console.log('🔍 Looking for user:', email);
+        
         const user = await getUser(email);
         
         if (!user) {
+          console.log('❌ User not found in database');
           return null;
         }
 
+        console.log('✅ User found:', user.email);
+        console.log('🔑 Comparing passwords...');
+        
         const passwordsMatch = await bcrypt.compare(password, user.password);
         
+        console.log('🔑 Password match result:', passwordsMatch);
+        
         if (!passwordsMatch) {
+          console.log('❌ Password mismatch');
           return null;
         }
 
+        console.log('✅ Login successful!');
         return {
           id: user.id,
           name: user.name,
