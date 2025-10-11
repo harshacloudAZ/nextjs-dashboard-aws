@@ -18,5 +18,5 @@ export const authConfig = {
     },
   },
   providers: [],
-  trustHost: true, // THIS LINE IS CRITICAL!
+  trustHost: true,
 } satisfies NextAuthConfig;
