@@ -28,8 +28,18 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET || '4dd0f005c8a7c26981cfb2e636e80d5ad',
   trustHost: true,
   pages: {
-    signIn: '/login',
+  signIn: '/login',
+},
+callbacks: {
+  async redirect({ url, baseUrl }) {
+    // Allows relative callback URLs
+    if (url.startsWith("/")) return `${baseUrl}${url}`
+    // Allows callback URLs on the same origin
+    else if (new URL(url).origin === baseUrl) return url
+    return `${baseUrl}/dashboard`
   },
+  // ... existing jwt and session callbacks
+},
   session: {
     strategy: 'jwt',
   },
