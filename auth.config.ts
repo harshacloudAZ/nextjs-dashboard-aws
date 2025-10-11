@@ -1,5 +1,9 @@
 import type { NextAuthConfig } from 'next-auth';
 
 export const authConfig = {
-  // Empty for now - all config is in auth.ts
+  providers: [],
+  pages: {
+    signIn: '/login',
+  },
+  trustHost: true,
 } satisfies NextAuthConfig;
