@@ -9,6 +9,16 @@ import { AuthError } from 'next-auth';
 
 const prisma = new PrismaClient();
 
+// Add this type export
+export type State = {
+  errors?: {
+    customerId?: string[];
+    amount?: string[];
+    status?: string[];
+  };
+  message?: string | null;
+};
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
@@ -74,10 +84,7 @@ export async function createInvoice(formData: FormData) {
 
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
-export async function updateInvoice(
-  id: string,
-  formData: FormData,
-) {
+export async function updateInvoice(id: string, formData: FormData) {
   const { customerId, amount, status } = UpdateInvoice.parse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -108,9 +115,8 @@ export async function deleteInvoice(id: string) {
     await prisma.invoice.delete({
       where: { id: id },
     });
-    revalidatePath('/dashboard/invoices');
   } catch (error) {
-    // Log error but don't return
-    console.error('Database Error: Failed to Delete Invoice.');
+    console.error('Failed to delete invoice');
   }
+  revalidatePath('/dashboard/invoices');
 }
