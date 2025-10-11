@@ -4,6 +4,8 @@
     "build": "next build",
     "dev": "next dev",
     "start": "next start"
+	"lint": "next lint",
+ 	"postinstall": "prisma generate"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -38,12 +40,6 @@
       "bcrypt",
       "sharp"
     ]
-"scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint",
-  "postinstall": "prisma generate"
-},
+
   }
 }
