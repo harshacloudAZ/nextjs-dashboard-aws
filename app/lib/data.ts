@@ -12,9 +12,11 @@ import { formatCurrency } from './utils';
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL || 'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb'
-    }
-  }
+      url:
+        process.env.DATABASE_URL ||
+        'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
+    },
+  },
 });
 
 export async function fetchRevenue() {
@@ -47,44 +49,9 @@ export async function fetchLatestInvoices() {
   }
 }
 
-export async function fetchCardData() {
-  try {
-    const invoiceCountPromise = prisma.$queryRaw`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = prisma.$queryRaw`SELECT COUNT(*) FROM customers`;
-    const invoiceStatusPromise = prisma.$queryRaw`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
-
-    const data: any = await Promise.all([
-      invoiceCountPromise,
-      customerCountPromise,
-      invoiceStatusPromise,
-    ]);
-
-    const numberOfInvoices = Number(data[0][0].count ?? '0');
-    const numberOfCustomers = Number(data[1][0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2][0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2][0].pending ?? '0');
-
-    return {
-      numberOfCustomers,
-      numberOfInvoices,
-      totalPaidInvoices,
-      totalPendingInvoices,
-    };
-  } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch card data.');
-  }
-}
-
 const ITEMS_PER_PAGE = 6;
 
-export async function fetchFilteredInvoices(
-  query: string,
-  currentPage: number,
-) {
+export async function fetchFilteredInvoices(query: string, currentPage: number) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
@@ -118,16 +85,17 @@ export async function fetchFilteredInvoices(
 
 export async function fetchInvoicesPages(query: string) {
   try {
-    const data: any = await prisma.$queryRaw`SELECT COUNT(*)
-    FROM invoices
-    JOIN customers ON invoices.customer_id = customers.id
-    WHERE
-      customers.name ILIKE ${`%${query}%`} OR
-      customers.email ILIKE ${`%${query}%`} OR
-      invoices.amount::text ILIKE ${`%${query}%`} OR
-      invoices.date::text ILIKE ${`%${query}%`} OR
-      invoices.status ILIKE ${`%${query}%`}
-  `;
+    const data: any = await prisma.$queryRaw`
+      SELECT COUNT(*)
+      FROM invoices
+      JOIN customers ON invoices.customer_id = customers.id
+      WHERE
+        customers.name ILIKE ${`%${query}%`} OR
+        customers.email ILIKE ${`%${query}%`} OR
+        invoices.amount::text ILIKE ${`%${query}%`} OR
+        invoices.date::text ILIKE ${`%${query}%`} OR
+        invoices.status ILIKE ${`%${query}%`}
+    `;
 
     const totalPages = Math.ceil(Number(data[0].count) / ITEMS_PER_PAGE);
     return totalPages;
@@ -182,10 +150,12 @@ export async function fetchCardData() {
   try {
     const invoiceCountPromise = prisma.$queryRaw`SELECT COUNT(*)::int FROM invoices`;
     const customerCountPromise = prisma.$queryRaw`SELECT COUNT(*)::int FROM customers`;
-    const invoiceStatusPromise = prisma.$queryRaw`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END)::bigint AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END)::bigint AS "pending"
-         FROM invoices`;
+    const invoiceStatusPromise = prisma.$queryRaw`
+      SELECT
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0)::bigint AS "paid",
+        COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0)::bigint AS "pending"
+      FROM invoices
+    `;
 
     const data: any = await Promise.all([
       invoiceCountPromise,
