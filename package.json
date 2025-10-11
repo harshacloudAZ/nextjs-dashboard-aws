@@ -1,9 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "build": "next build",
     "dev": "next dev",
-    "start": "next start"
+    "build": "next build",
+    "start": "next start",
+    "migrate": "prisma migrate deploy",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -17,26 +19,28 @@
     "pg": "^8.11.3",
     "postcss": "8.5.1",
     "postgres": "^3.4.6",
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "tailwindcss": "3.4.17",
     "typescript": "5.7.3",
     "use-debounce": "^10.0.4",
     "zod": "^3.25.17"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "22.10.7",
     "@types/pg": "^8.10.5",
-    "@types/react": "19.0.7",
-    "@types/react-dom": "19.0.3",
+    "@types/react": "18.2.66",
+    "@types/react-dom": "18.2.22",
     "prisma": "^6.17.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "bcrypt",
+      "bcryptjs",
       "sharp"
     ]
+  },
+  "engines": {
+    "node": ">=18.17.0"
   }
 }
