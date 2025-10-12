@@ -152,7 +152,7 @@ export async function fetchCardData() {
       prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM invoices`;
     const customerCountPromise =
       prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM customers`;
-    const invoiceStatusPromise = prisma.$queryRaw<
+    const invoiceStatusPromise = prisma.$queryRaw
       Array<{ paid: number; pending: number }>
     >`
       SELECT
@@ -184,45 +184,49 @@ export async function fetchCardData() {
   }
 }
 
-/**
- * NEW: required by app/dashboard/customers/page.tsx
- * Returns paginated, filtered customers with aggregate columns expected by CustomersTableType.
- */
 export async function fetchFilteredCustomers(query: string, currentPage: number) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
-  const rows = await prisma.$queryRaw<CustomersTableType[]>`
-    SELECT
-      c.id,
-      c.name,
-      c.email,
-      c.image_url,
-      COUNT(i.id)::int AS total_invoices,
-      COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0)::int AS total_pending
-    FROM customers c
-    LEFT JOIN invoices i ON c.id = i.customer_id
-    WHERE
-      c.name  ILIKE ${'%' + query + '%'} OR
-      c.email ILIKE ${'%' + query + '%'}
-    GROUP BY c.id, c.name, c.email, c.image_url
-    ORDER BY c.name ASC
-    LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-  `;
+  try {
+    const rows = await prisma.$queryRaw<CustomersTableType[]>`
+      SELECT
+        c.id,
+        c.name,
+        c.email,
+        c.image_url,
+        COUNT(i.id)::int AS total_invoices,
+        COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0)::int AS total_pending,
+        COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount ELSE 0 END), 0)::int AS total_paid
+      FROM customers c
+      LEFT JOIN invoices i ON c.id = i.customer_id
+      WHERE
+        c.name  ILIKE ${'%' + query + '%'} OR
+        c.email ILIKE ${'%' + query + '%'}
+      GROUP BY c.id, c.name, c.email, c.image_url
+      ORDER BY c.name ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
 
-  return rows;
+    return rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch filtered customers.');
+  }
 }
 
-/**
- * NEW: total pages for the customers table, matching the same filter as above.
- */
 export async function fetchCustomersPages(query: string) {
-  const data: Array<{ count: number }> = await prisma.$queryRaw`
-    SELECT COUNT(*)::int AS count
-    FROM customers c
-    WHERE
-      c.name  ILIKE ${'%' + query + '%'} OR
-      c.email ILIKE ${'%' + query + '%'}
-  `;
-  const totalPages = Math.ceil((data[0]?.count ?? 0) / ITEMS_PER_PAGE);
-  return totalPages;
+  try {
+    const data: Array<{ count: number }> = await prisma.$queryRaw`
+      SELECT COUNT(*)::int AS count
+      FROM customers c
+      WHERE
+        c.name  ILIKE ${'%' + query + '%'} OR
+        c.email ILIKE ${'%' + query + '%'}
+    `;
+    const totalPages = Math.ceil((data[0]?.count ?? 0) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total customers pages.');
+  }
 }
