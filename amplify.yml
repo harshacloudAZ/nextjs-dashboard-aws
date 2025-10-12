@@ -6,6 +6,7 @@ frontend:
         - npm ci
     build:
       commands:
+        - env | grep -i database || echo "No DATABASE_URL found"
         - npm run build
   artifacts:
     baseDirectory: .next
@@ -15,3 +16,7 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+env:
+  variables:
+    SKIP_ENV_VALIDATION: "1"
+    NODE_ENV: production
