@@ -13,6 +13,14 @@ const nextConfig = {
     }
     return config;
   },
+  // Skip building seed and query routes - they're only for manual use
+  async rewrites() {
+    return {
+      beforeFiles: [],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default nextConfig;
