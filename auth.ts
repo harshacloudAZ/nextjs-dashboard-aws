@@ -1,79 +1,65 @@
-// auth.ts
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import { authConfig } from './auth.config';
 import { z } from 'zod';
-import postgres from 'postgres';
+import type { User } from '@/app/lib/definitions';
+import bcrypt from 'bcrypt';
+import { Client } from 'pg';
 
-const databaseUrl = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL or POSTGRES_URL must be set');
+// Check environment variables
+if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+  console.error('DATABASE_URL or POSTGRES_URL must be set');
+  throw new Error('Database configuration is missing');
 }
 
-const sql = postgres(databaseUrl, { ssl: 'require' });
+async function getUser(email: string): Promise<User | undefined> {
+  try {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
 
-export const { auth, signIn, signOut, handlers } = NextAuth({
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  trustHost: true,
-  pages: { signIn: '/login' },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
+    await client.connect();
+
+    const result = await client.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email]
+    );
+
+    await client.end();
+
+    return result.rows[0];
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    throw new Error('Failed to fetch user.');
+  }
+}
+
+export const { auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
       async authorize(credentials) {
-        const parsed = z.object({
-          email: z.string().email(),
-          password: z.string().min(6),
-        }).safeParse(credentials);
+        const parsedCredentials = z
+          .object({ email: z.string().email(), password: z.string().min(6) })
+          .safeParse(credentials);
 
-        if (!parsed.success) return null;
+        if (parsedCredentials.success) {
+          const { email, password } = parsedCredentials.data;
+          const user = await getUser(email);
 
-        const { email, password } = parsed.data;
+          if (!user) return null;
 
-        try {
-          const rows = await sql<{ id: string; name: string | null; email: string; password: string }[]>`
-            SELECT id, name, email, password FROM "User" WHERE email = ${email} LIMIT 1
-          `;
-          const user = rows[0];
-          if (!user || !user.password) return null;
+          const passwordsMatch = await bcrypt.compare(password, user.password);
 
-          const bcrypt = await import('bcrypt');
-          const ok = await bcrypt.compare(password, user.password);
-          if (!ok) return null;
-
-          return { id: user.id, name: user.name ?? undefined, email: user.email };
-        } catch (error) {
-          console.error('Auth error:', error);
-          return null;
+          if (passwordsMatch) return user;
         }
+
+        console.log('Invalid credentials');
+        return null;
       },
     }),
   ],
-  callbacks: {
-    async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
-      if (new URL(url).origin === baseUrl) return url;
-      return `${baseUrl}/dashboard`;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-      }
-      return session;
-    },
-  },
 });
