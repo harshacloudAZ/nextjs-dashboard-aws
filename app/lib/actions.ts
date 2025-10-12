@@ -23,12 +23,19 @@ export async function authenticate(
   formData: FormData,
 ) {
   try {
-    await signIn('credentials', {
-      email: formData.get('email'),
-      password: formData.get('password'),
-      redirect: true,
-      redirectTo: '/dashboard',
+    const result = await signIn('credentials', {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      redirect: false, // Don't redirect automatically
     });
+
+    // Only redirect if sign in was successful
+    if (result?.error) {
+      return 'Invalid credentials.';
+    }
+
+    // Use redirect after checking for errors
+    redirect('/dashboard');
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
@@ -38,6 +45,7 @@ export async function authenticate(
           return 'Something went wrong.';
       }
     }
+    // Re-throw redirect errors
     throw error;
   }
 }
@@ -139,8 +147,9 @@ export async function deleteInvoice(id: string) {
     await prisma.invoice.delete({
       where: { id: id },
     });
+    revalidatePath('/dashboard/invoices');
+    return { message: 'Deleted Invoice.' };
   } catch (error) {
-    console.error('Database Error: Failed to Delete Invoice.');
+    return { message: 'Database Error: Failed to Delete Invoice.' };
   }
-  revalidatePath('/dashboard/invoices');
 }

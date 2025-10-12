@@ -9,13 +9,8 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL || 'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
-    },
-  },
-});
+// Use environment variable only - NEVER hardcode credentials
+const prisma = new PrismaClient();
 
 export async function fetchRevenue() {
   try {
