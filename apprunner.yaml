@@ -4,14 +4,22 @@ runtime: nodejs18
 build:
   commands:
     pre-build:
+      - echo "Node version:"
+      - node --version
+      - echo "NPM version:"
+      - npm --version
       - echo "Installing dependencies..."
-      - npm ci
+      - npm install
     build:
       - echo "Building Next.js application..."
       - npm run build
   env:
     - name: NODE_ENV
       value: production
+    - name: NEXT_TELEMETRY_DISABLED
+      value: "1"
+    - name: SKIP_ENV_VALIDATION
+      value: "1"
 
 run:
   runtime-version: 18
