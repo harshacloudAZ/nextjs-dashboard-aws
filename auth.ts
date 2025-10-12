@@ -2,11 +2,14 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import postgres from 'postgres';
 
-const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL } },
-});
+const databaseUrl = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL or POSTGRES_URL must be set');
+}
+
+const sql = postgres(databaseUrl, { ssl: 'require' });
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
@@ -34,10 +37,12 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         const { email, password } = parsed.data;
 
         try {
-          const user = await prisma.user.findUnique({ where: { email } });
+          const rows = await sql<{ id: string; name: string | null; email: string; password: string }[]>`
+            SELECT id, name, email, password FROM "User" WHERE email = ${email} LIMIT 1
+          `;
+          const user = rows[0];
           if (!user || !user.password) return null;
 
-          // Use dynamic import to avoid Edge Runtime issues
           const bcrypt = await import('bcrypt');
           const ok = await bcrypt.compare(password, user.password);
           if (!ok) return null;
