@@ -4,8 +4,13 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 
+const databaseUrl = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL or POSTGRES_URL must be set');
+}
+
 const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL } },
+  datasources: { db: { url: databaseUrl } },
 });
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
