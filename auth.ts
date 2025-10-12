@@ -6,14 +6,16 @@ import type { User } from '@/app/lib/definitions';
 import bcrypt from 'bcrypt';
 import { Client } from 'pg';
 
-// Check environment variables
-if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
-  console.error('DATABASE_URL or POSTGRES_URL must be set');
-  throw new Error('Database configuration is missing');
-}
-
+// Don't check env vars at module load time - check when actually needed
 async function getUser(email: string): Promise<User | undefined> {
   try {
+    // Check here instead - when function is actually called
+    if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+      throw new Error('DATABASE_URL or POSTGRES_URL must be set');
+    }
+
+    console.log('Connecting to database for user:', email);
+
     const client = new Client({
       connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
       ssl: {
@@ -22,6 +24,7 @@ async function getUser(email: string): Promise<User | undefined> {
     });
 
     await client.connect();
+    console.log('Database connected successfully');
 
     const result = await client.query(
       'SELECT * FROM users WHERE email = $1',
@@ -29,6 +32,7 @@ async function getUser(email: string): Promise<User | undefined> {
     );
 
     await client.end();
+    console.log('User query completed');
 
     return result.rows[0];
   } catch (error) {
