@@ -1,107 +1,112 @@
+// auth.ts
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL || 'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb'
-    }
-  }
-});
+// --- Prisma (singleton to avoid too many connections in dev) ---
+declare global {
+  // eslint-disable-next-line no-var
+  var __prisma: PrismaClient | undefined;
+}
 
+const prisma =
+  global.__prisma ??
+  new PrismaClient({
+    datasources: {
+      db: {
+        url:
+          process.env.DATABASE_URL ||
+          'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
+      },
+    },
+  });
+
+if (process.env.NODE_ENV !== 'production') global.__prisma = prisma;
+
+// --- Helper ---
 async function getUser(email: string) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
-    return user;
+    return await prisma.user.findUnique({ where: { email } });
   } catch (error) {
     console.error('Database error:', error);
     return null;
   }
 }
 
+// --- NextAuth ---
 export const { auth, signIn, signOut, handlers } = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET || '4dd0f005c8a7c26981cfb2e636e80d5ad',
+  // Prefer Auth.js v5 env; fall back to v4 to be safe
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   trustHost: true,
+
   pages: {
     signIn: '/login',
   },
+
   session: {
     strategy: 'jwt',
   },
+
   providers: [
     Credentials({
       name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('🔍 Login attempt for:', credentials?.email);
-        
-        if (!credentials?.email || !credentials?.password) {
-          console.log('❌ Missing credentials');
-          return null;
-        }
-
-        const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
+        // Validate input
+        const parsed = z
+          .object({
+            email: z.string().email(),
+            password: z.string().min(6),
+          })
           .safeParse(credentials);
+        if (!parsed.success) return null;
 
-        if (!parsedCredentials.success) {
-          console.log('❌ Validation failed');
-          return null;
-        }
+        const { email, password } = parsed.data;
 
-        const { email, password } = parsedCredentials.data;
-        console.log('🔍 Looking for user:', email);
-        
+        // Lookup user
         const user = await getUser(email);
-        
-        if (!user) {
-          console.log('❌ User not found in database');
-          return null;
-        }
+        if (!user || !user.password) return null;
 
-        console.log('✅ User found:', user.email);
-        console.log('🔑 Comparing passwords...');
-        
-        const passwordsMatch = await bcrypt.compare(password, user.password);
-        
-        console.log('🔑 Password match result:', passwordsMatch);
-        
-        if (!passwordsMatch) {
-          console.log('❌ Password mismatch');
-          return null;
-        }
+        // ✅ Dynamic import keeps bcryptjs out of the Edge bundle
+        const { compare } = await import('bcryptjs');
+        const ok = await compare(password, user.password);
+        if (!ok) return null;
 
-        console.log('✅ Login successful!');
         return {
           id: user.id,
-          name: user.name,
+          name: user.name ?? undefined,
           email: user.email,
         };
       },
     }),
   ],
+
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      else if (new URL(url).origin === baseUrl) return url;
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // ignore invalid URL
+      }
       return `${baseUrl}/dashboard`;
     },
+
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        // @ts-expect-error: augmenting token shape
+        token.id = (user as any).id;
       }
       return token;
     },
+
     async session({ session, token }) {
-      if (token && session.user) {
+      if (session.user && token) {
+        // @ts-expect-error: augmenting session shape
         session.user.id = token.id as string;
       }
       return session;

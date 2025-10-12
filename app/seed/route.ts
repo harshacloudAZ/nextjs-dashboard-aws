@@ -1,8 +1,11 @@
-import bcrypt from 'bcryptjs';
+// Ensure this route runs on the Node runtime (not Edge)
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import postgres from 'postgres';
 import { invoices, customers, revenue, users } from '../lib/placeholder-data';
 
-// Prefer DATABASE_URL (Prisma), fall back to POSTGRES_URL (postgres.js)
+// Prefer Prisma's DATABASE_URL; fall back to POSTGRES_URL
 const DATABASE_URL = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 if (!DATABASE_URL) {
   throw new Error('DATABASE_URL or POSTGRES_URL must be set');
@@ -11,13 +14,16 @@ if (!DATABASE_URL) {
 // TLS for hosted Postgres (Neon/Supabase/RDS public)
 const sql = postgres(DATABASE_URL, { ssl: 'require' });
 
-async function ensureExtensions(tx: ReturnType<typeof postgres>) {
+type Sql = ReturnType<typeof postgres>;
+
+async function ensureExtensions(tx: Sql) {
   await tx`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 }
 
-async function seedUsers(tx: ReturnType<typeof postgres>) {
+async function seedUsers(tx: Sql) {
+  // Use "User" (capital U) to match Prisma's default model mapping
   await tx`
-    CREATE TABLE IF NOT EXISTS users (
+    CREATE TABLE IF NOT EXISTS "User" (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email TEXT NOT NULL UNIQUE,
@@ -25,17 +31,22 @@ async function seedUsers(tx: ReturnType<typeof postgres>) {
     );
   `;
 
+  const { hash } = await import('bcryptjs'); // dynamic import to avoid Edge bundling
+
   for (const u of users) {
-    const hashed = await bcrypt.hash(u.password, 10);
+    const hashed = /^\$2[aby]\$/.test(u.password)
+      ? u.password // already a bcrypt hash
+      : await hash(u.password, 10);
+
     await tx`
-      INSERT INTO users (id, name, email, password)
+      INSERT INTO "User" (id, name, email, password)
       VALUES (${u.id}, ${u.name}, ${u.email}, ${hashed})
       ON CONFLICT (email) DO NOTHING;
     `;
   }
 }
 
-async function seedCustomers(tx: ReturnType<typeof postgres>) {
+async function seedCustomers(tx: Sql) {
   await tx`
     CREATE TABLE IF NOT EXISTS customers (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -54,7 +65,7 @@ async function seedCustomers(tx: ReturnType<typeof postgres>) {
   }
 }
 
-async function seedInvoices(tx: ReturnType<typeof postgres>) {
+async function seedInvoices(tx: Sql) {
   await tx`
     CREATE TABLE IF NOT EXISTS invoices (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -76,7 +87,7 @@ async function seedInvoices(tx: ReturnType<typeof postgres>) {
   }
 }
 
-async function seedRevenue(tx: ReturnType<typeof postgres>) {
+async function seedRevenue(tx: Sql) {
   await tx`
     CREATE TABLE IF NOT EXISTS revenue (
       month VARCHAR(4) NOT NULL UNIQUE,
