@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
@@ -8,12 +8,12 @@ async function main() {
   await prisma.user.deleteMany({
     where: { email: 'user@nextmail.com' }
   });
-  
+
   console.log('Deleted old user');
-  
+
   // Create new user with fresh hash
   const hashedPassword = await bcrypt.hash('123456', 10);
-  
+
   const user = await prisma.user.create({
     data: {
       name: 'User',
@@ -21,7 +21,7 @@ async function main() {
       password: hashedPassword,
     },
   });
-  
+
   console.log('✅ Created fresh user:', user.email);
   console.log('Password hash:', hashedPassword);
 }
