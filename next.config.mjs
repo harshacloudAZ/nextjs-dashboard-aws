@@ -4,10 +4,15 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    serverComponentsExternalPackages: ['bcrypt'],
+    serverComponentsExternalPackages: ['bcrypt', '@mapbox/node-pre-gyp'],
   },
-  // Don't use output: 'standalone' for Amplify
-  // Amplify handles the build process differently
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Exclude bcrypt from client-side bundle
+      config.externals.push('bcrypt');
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
