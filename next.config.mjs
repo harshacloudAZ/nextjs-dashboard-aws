@@ -1,26 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-    serverComponentsExternalPackages: ['bcrypt', '@mapbox/node-pre-gyp'],
+  // Amplify supports all Next.js features
+  images: {
+    unoptimized: false, // Amplify supports image optimization
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Exclude bcrypt from client-side bundle
-      config.externals.push('bcrypt');
-    }
-    return config;
-  },
-  // Skip building seed and query routes - they're only for manual use
-  async rewrites() {
-    return {
-      beforeFiles: [],
-      afterFiles: [],
-      fallback: [],
-    };
-  },
-};
+  // Optional: Add any other configs you need
+}
 
-export default nextConfig;
+module.exports = nextConfig
