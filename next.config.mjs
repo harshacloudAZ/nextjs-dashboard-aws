@@ -4,6 +4,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    serverComponentsExternalPackages: ['bcrypt'],
   },
   // Don't use output: 'standalone' for Amplify
   // Amplify handles the build process differently

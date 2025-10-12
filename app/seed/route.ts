@@ -31,7 +31,7 @@ async function seedUsers(tx: Sql) {
     );
   `;
 
-  const { hash } = await import('bcryptjs'); // dynamic import to avoid Edge bundling
+  const { hash } = await import('bcrypt');
 
   for (const u of users) {
     const hashed = /^\$2[aby]\$/.test(u.password)

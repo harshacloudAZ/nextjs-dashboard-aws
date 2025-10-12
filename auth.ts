@@ -38,7 +38,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           if (!user || !user.password) return null;
 
           // Use dynamic import to avoid Edge Runtime issues
-          const bcrypt = await import('bcryptjs');
+          const bcrypt = await import('bcrypt');
           const ok = await bcrypt.compare(password, user.password);
           if (!ok) return null;
 
