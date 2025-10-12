@@ -31,9 +31,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user || !user.password) return null;
 
-        // ✅ dynamic import; keeps Node APIs out of Edge bundle
-        const { compare } = await import('bcryptjs');
-        const ok = await compare(password, user.password);
+        // Use dynamic import to avoid Edge Runtime issues
+        const bcrypt = await import('bcryptjs');
+        const ok = await bcrypt.compare(password, user.password);
         if (!ok) return null;
 
         return { id: user.id, name: user.name ?? undefined, email: user.email };
@@ -43,11 +43,10 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   callbacks: {
     async redirect({ url, baseUrl }) {
       if (url.startsWith('/')) return baseUrl + url;
-      try { if (new URL(url).origin === baseUrl) return url; } catch {}
+      try { if (new URL(url).origin === baseUrl) return url; } catch { }
       return baseUrl + '/dashboard';
     },
     async jwt({ token, user }) { if (user) (token as any).id = (user as any).id; return token; },
     async session({ session, token }) { if (session.user && token) (session.user as any).id = (token as any).id; return session; },
   },
 });
-

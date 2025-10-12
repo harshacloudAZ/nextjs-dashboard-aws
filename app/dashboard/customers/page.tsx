@@ -6,6 +6,7 @@ import { lusitana } from '@/app/ui/fonts';
 import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import { Suspense } from 'react';
 import { fetchFilteredCustomers, fetchCustomersPages } from '@/app/lib/data';
+import { formatCurrency } from '@/app/lib/utils';
 
 export default async function Page({
   searchParams,
@@ -18,8 +19,15 @@ export default async function Page({
   const currentPage = Number(searchParams?.page) || 1;
   const query = searchParams?.query || '';
 
-  const customers = await fetchFilteredCustomers(query, currentPage);
+  const customersData = await fetchFilteredCustomers(query, currentPage);
   const totalPages = await fetchCustomersPages(query);
+
+  // Format the customers data to match the expected type
+  const customers = customersData.map((customer) => ({
+    ...customer,
+    total_pending: formatCurrency(customer.total_pending),
+    total_paid: formatCurrency(customer.total_paid),
+  }));
 
   return (
     <main>
