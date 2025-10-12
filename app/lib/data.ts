@@ -12,9 +12,7 @@ import { formatCurrency } from './utils';
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url:
-        process.env.DATABASE_URL ||
-        'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
+      url: process.env.DATABASE_URL || 'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
     },
   },
 });
@@ -148,18 +146,9 @@ export async function fetchCustomers() {
 
 export async function fetchCardData() {
   try {
-    const invoiceCountPromise =
-      prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM invoices`;
-    const customerCountPromise =
-      prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM customers`;
-    const invoiceStatusPromise = prisma.$queryRaw
-      Array<{ paid: number; pending: number }>
-    >`
-      SELECT
-        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0)::bigint AS "paid",
-        COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0)::bigint AS "pending"
-      FROM invoices
-    `;
+    const invoiceCountPromise = prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM invoices`;
+    const customerCountPromise = prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM customers`;
+    const invoiceStatusPromise = prisma.$queryRaw<Array<{ paid: number; pending: number }>>`SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0)::bigint AS "paid", COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0)::bigint AS "pending" FROM invoices`;
 
     const [invoiceCount, customerCount, statusSums] = await Promise.all([
       invoiceCountPromise,
