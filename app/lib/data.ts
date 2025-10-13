@@ -191,9 +191,13 @@ export async function fetchCustomers() {
   }
 }
 
-export async function fetchFilteredCustomers(query: string) {
+export async function fetchFilteredCustomers(query: string, currentPage: number = 1) {
+  const offset = (currentPage - 1) * 6;
+
   try {
     const customers = await prisma.customer.findMany({
+      take: 6,
+      skip: offset,
       where: {
         OR: [
           {
