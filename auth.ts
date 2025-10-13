@@ -14,7 +14,7 @@ async function getUser(email: string): Promise<User | undefined> {
       throw new Error('DATABASE_URL or POSTGRES_URL must be set');
     }
 
-    console.log('Connecting to database for user:', email);
+    console.log('Attempting to fetch user for email:', email);
 
     const client = new Client({
       connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
@@ -32,11 +32,15 @@ async function getUser(email: string): Promise<User | undefined> {
     );
 
     await client.end();
-    console.log('User query completed');
+    console.log('User query completed. Found user:', !!result.rows[0]);
 
     return result.rows[0];
   } catch (error) {
     console.error('Failed to fetch user:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      email: email,
+    });
     throw new Error('Failed to fetch user.');
   }
 }
