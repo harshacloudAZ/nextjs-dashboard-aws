@@ -118,7 +118,18 @@ export async function fetchFilteredInvoices(
       },
     });
 
-    return invoices;
+    return invoices.map((invoice) => ({
+      id: invoice.id,
+      customer_id: invoice.customer_id,
+      amount: invoice.amount,
+      date: invoice.date.toISOString(),
+      status: invoice.status as 'pending' | 'paid',
+      customer: {
+        name: invoice.customer.name,
+        email: invoice.customer.email,
+        image_url: invoice.customer.image_url,
+      },
+    }));
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoices.');
@@ -175,8 +186,17 @@ export async function fetchInvoiceById(id: string) {
     if (!invoice) return undefined;
 
     return {
-      ...invoice,
+      id: invoice.id,
+      customer_id: invoice.customer_id,
       amount: invoice.amount / 100,
+      status: invoice.status as 'pending' | 'paid',
+      date: invoice.date,
+      customer: {
+        id: invoice.customer.id,
+        name: invoice.customer.name,
+        email: invoice.customer.email,
+        image_url: invoice.customer.image_url,
+      },
     };
   } catch (error) {
     console.error('Database Error:', error);
