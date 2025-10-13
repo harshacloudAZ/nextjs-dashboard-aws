@@ -7,31 +7,30 @@ import bcrypt from 'bcrypt';
 import { Client } from 'pg';
 
 // Don't check env vars at module load time - check when actually needed
-async function getUser(email: string): Promise<User | undefined> {
-  try {
-    const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+// Create a function that returns the database client
+function createDbClient() {
+  // Read environment variables fresh each time
+  const connectionString =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb';
 
-    console.log('Environment check:', {
-      hasDatabaseUrl: !!process.env.DATABASE_URL,
-      hasPostgresUrl: !!process.env.POSTGRES_URL,
-      databaseUrlLength: databaseUrl?.length || 0,
-    });
+  console.log('Creating DB client with connection string length:', connectionString.length);
 
-    if (!databaseUrl) {
-      console.error('DATABASE_URL or POSTGRES_URL must be set');
-      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('POSTGRES')));
-      throw new Error('DATABASE_URL or POSTGRES_URL must be set');
+  return new Client({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false
     }
+  });
+}
 
+async function getUser(email: string): Promise<User | undefined> {
+  let client;
+  try {
     console.log('Attempting to fetch user for email:', email);
 
-    const client = new Client({
-      connectionString: databaseUrl,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-
+    client = createDbClient();
     await client.connect();
     console.log('Database connected successfully');
 
@@ -40,7 +39,6 @@ async function getUser(email: string): Promise<User | undefined> {
       [email]
     );
 
-    await client.end();
     console.log('User query completed. Found user:', !!result.rows[0]);
 
     return result.rows[0];
@@ -51,6 +49,10 @@ async function getUser(email: string): Promise<User | undefined> {
       email: email,
     });
     throw new Error('Failed to fetch user.');
+  } finally {
+    if (client) {
+      await client.end();
+    }
   }
 }
 
