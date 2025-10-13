@@ -41,8 +41,15 @@ async function getUser(email: string): Promise<User | undefined> {
   }
 }
 
+// Debug: Log what secrets are available
+console.log('Auth secrets check:', {
+  hasAuthSecret: !!process.env.AUTH_SECRET,
+  hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
+  authSecretLength: process.env.AUTH_SECRET?.length || 0,
+  nextAuthSecretLength: process.env.NEXTAUTH_SECRET?.length || 0,
+});
+
 export const { auth, signIn, signOut, handlers } = NextAuth({
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   ...authConfig,
   providers: [
     Credentials({
