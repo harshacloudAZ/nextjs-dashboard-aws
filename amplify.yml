@@ -4,6 +4,7 @@ frontend:
     preBuild:
       commands:
         - npm ci
+        - npx prisma generate
     build:
       commands:
         - env | grep -i database || echo "No DATABASE_URL found"
