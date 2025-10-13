@@ -9,15 +9,24 @@ import { Client } from 'pg';
 // Don't check env vars at module load time - check when actually needed
 async function getUser(email: string): Promise<User | undefined> {
   try {
-    // Check here instead - when function is actually called
-    if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+    const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+
+    console.log('Environment check:', {
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasPostgresUrl: !!process.env.POSTGRES_URL,
+      databaseUrlLength: databaseUrl?.length || 0,
+    });
+
+    if (!databaseUrl) {
+      console.error('DATABASE_URL or POSTGRES_URL must be set');
+      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('POSTGRES')));
       throw new Error('DATABASE_URL or POSTGRES_URL must be set');
     }
 
     console.log('Attempting to fetch user for email:', email);
 
     const client = new Client({
-      connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
+      connectionString: databaseUrl,
       ssl: {
         rejectUnauthorized: false
       }
