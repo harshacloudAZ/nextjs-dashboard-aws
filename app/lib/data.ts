@@ -25,8 +25,16 @@ export async function fetchLatestInvoices() {
     });
 
     return data.map((invoice) => ({
-      ...invoice,
-      amount: invoice.amount / 100, // Convert cents to dollars
+      id: invoice.id,
+      customer_id: invoice.customer_id,
+      amount: invoice.amount / 100,
+      date: invoice.date.toISOString(),
+      status: invoice.status as 'pending' | 'paid',
+      customer: {
+        name: invoice.customer.name,
+        email: invoice.customer.email,
+        image_url: invoice.customer.image_url,
+      },
     }));
   } catch (error) {
     console.error('Database Error:', error);
