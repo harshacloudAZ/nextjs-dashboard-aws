@@ -173,12 +173,10 @@ export async function deleteInvoice(id: string) {
       where: { id },
     });
     console.log('Invoice deleted successfully');
-    revalidatePath('/dashboard/invoices');
-    return { message: 'Deleted Invoice.' };
   } catch (error) {
     console.error('Database Error:', error);
-    return {
-      message: 'Database Error: Failed to Delete Invoice.'
-    };
+    throw new Error('Database Error: Failed to Delete Invoice.');
   }
+
+  revalidatePath('/dashboard/invoices');
 }
