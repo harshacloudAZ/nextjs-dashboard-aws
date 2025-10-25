@@ -11,10 +11,13 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
+// FIXED: Add fallback for AWS deployment
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: process.env.DATABASE_URL ||
+        process.env.POSTGRES_URL ||
+        'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
     },
   },
 });
