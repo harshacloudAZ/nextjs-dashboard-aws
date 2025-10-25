@@ -1,12 +1,10 @@
-generator client {
-  provider = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+generator client {
+  provider = "prisma-client-js"
 }
 
 model User {
@@ -14,6 +12,8 @@ model User {
   name     String
   email    String @unique
   password String
+  
+  @@map("User")  // Explicitly set table name
 }
 
 model Customer {
@@ -22,6 +22,8 @@ model Customer {
   email     String
   image_url String
   invoices  Invoice[]
+  
+  @@map("Customer")  // Explicitly set table name
 }
 
 model Invoice {
@@ -31,9 +33,13 @@ model Invoice {
   status      String
   date        DateTime
   customer    Customer @relation(fields: [customer_id], references: [id])
+  
+  @@map("Invoice")  // Explicitly set table name
 }
 
 model Revenue {
   month   String @id
   revenue Int
+  
+  @@map("Revenue")  // Explicitly set table name
 }

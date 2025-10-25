@@ -1,3 +1,5 @@
+console.log('🔍 Next.js DATABASE_URL:', process.env.DATABASE_URL);
+
 import { PrismaClient } from '@prisma/client';
 import {
   CustomerField,
@@ -9,12 +11,18 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
-// Use environment variable only - NEVER hardcode credentials
-const prisma = new PrismaClient();
+// FIXED: Explicitly set database URL from environment variable
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
 
 export async function fetchRevenue() {
   try {
-    const data = await prisma.$queryRaw<Revenue[]>`SELECT * FROM revenue`;
+    const data = await prisma.$queryRaw<Revenue[]>`SELECT * FROM "Revenue"`;
     return data;
   } catch (error) {
     console.error('Database Error:', error);
@@ -26,8 +34,8 @@ export async function fetchLatestInvoices() {
   try {
     const data = await prisma.$queryRaw<LatestInvoiceRaw[]>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
+      FROM "Invoice" AS invoices
+      JOIN "Customer" AS customers ON invoices.customer_id = customers.id
       ORDER BY invoices.date DESC
       LIMIT 5`;
 
@@ -57,8 +65,8 @@ export async function fetchFilteredInvoices(query: string, currentPage: number) 
         customers.name,
         customers.email,
         customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
+      FROM "Invoice" AS invoices
+      JOIN "Customer" AS customers ON invoices.customer_id = customers.id
       WHERE
         customers.name ILIKE ${`%${query}%`} OR
         customers.email ILIKE ${`%${query}%`} OR
@@ -80,8 +88,8 @@ export async function fetchInvoicesPages(query: string) {
   try {
     const data: Array<{ count: number }> = await prisma.$queryRaw`
       SELECT COUNT(*)::int AS count
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
+      FROM "Invoice" AS invoices
+      JOIN "Customer" AS customers ON invoices.customer_id = customers.id
       WHERE
         customers.name ILIKE ${`%${query}%`} OR
         customers.email ILIKE ${`%${query}%`} OR
@@ -106,7 +114,7 @@ export async function fetchInvoiceById(id: string) {
         invoices.customer_id,
         invoices.amount,
         invoices.status
-      FROM invoices
+      FROM "Invoice" AS invoices
       WHERE invoices.id = ${id};
     `;
 
@@ -128,7 +136,7 @@ export async function fetchCustomers() {
       SELECT
         id,
         name
-      FROM customers
+      FROM "Customer"
       ORDER BY name ASC
     `;
 
@@ -141,9 +149,9 @@ export async function fetchCustomers() {
 
 export async function fetchCardData() {
   try {
-    const invoiceCountPromise = prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM invoices`;
-    const customerCountPromise = prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM customers`;
-    const invoiceStatusPromise = prisma.$queryRaw<Array<{ paid: number; pending: number }>>`SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0)::bigint AS "paid", COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0)::bigint AS "pending" FROM invoices`;
+    const invoiceCountPromise = prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM "Invoice"`;
+    const customerCountPromise = prisma.$queryRaw<Array<{ count: number }>>`SELECT COUNT(*)::int AS count FROM "Customer"`;
+    const invoiceStatusPromise = prisma.$queryRaw<Array<{ paid: number; pending: number }>>`SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0)::bigint AS "paid", COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0)::bigint AS "pending" FROM "Invoice"`;
 
     const [invoiceCount, customerCount, statusSums] = await Promise.all([
       invoiceCountPromise,
@@ -181,8 +189,8 @@ export async function fetchFilteredCustomers(query: string, currentPage: number)
         COUNT(i.id)::int AS total_invoices,
         COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0)::int AS total_pending,
         COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount ELSE 0 END), 0)::int AS total_paid
-      FROM customers c
-      LEFT JOIN invoices i ON c.id = i.customer_id
+      FROM "Customer" AS c
+      LEFT JOIN "Invoice" AS i ON c.id = i.customer_id
       WHERE
         c.name  ILIKE ${'%' + query + '%'} OR
         c.email ILIKE ${'%' + query + '%'}
@@ -202,7 +210,7 @@ export async function fetchCustomersPages(query: string) {
   try {
     const data: Array<{ count: number }> = await prisma.$queryRaw`
       SELECT COUNT(*)::int AS count
-      FROM customers c
+      FROM "Customer" AS c
       WHERE
         c.name  ILIKE ${'%' + query + '%'} OR
         c.email ILIKE ${'%' + query + '%'}
