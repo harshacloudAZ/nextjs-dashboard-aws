@@ -6,15 +6,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-<<<<<<< HEAD
     "seed": "tsx prisma/seed.ts"
-=======
-    "seed": "node -r dotenv/config ./scripts/seed.js",
-    "seed:prisma": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
-  },
-  "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -44,13 +36,7 @@
     "zod": "^3.25.17"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "dotenv": "^17.2.3",
     "tsx": "^4.20.6"
   }
 }
-=======
-    "ts-node": "^10.9.2"
-  }
-}
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20

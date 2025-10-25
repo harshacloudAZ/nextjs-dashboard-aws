@@ -11,7 +11,6 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
-// FIXED: Explicitly set database URL from environment variable
 const prisma = new PrismaClient({
   datasources: {
     db: {
@@ -33,16 +32,27 @@ export async function fetchRevenue() {
 export async function fetchLatestInvoices() {
   try {
     const data = await prisma.$queryRaw<LatestInvoiceRaw[]>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+      SELECT 
+        invoices.id,
+        invoices.amount, 
+        customers.name, 
+        customers.image_url, 
+        customers.email
       FROM "Invoice" AS invoices
       JOIN "Customer" AS customers ON invoices.customer_id = customers.id
       ORDER BY invoices.date DESC
       LIMIT 5`;
 
     const latestInvoices = data.map((invoice) => ({
-      ...invoice,
+      id: invoice.id,
       amount: formatCurrency(invoice.amount),
+      customer: {
+        name: invoice.name,
+        email: invoice.email,
+        image_url: invoice.image_url,
+      },
     }));
+
     return latestInvoices;
   } catch (error) {
     console.error('Database Error:', error);
@@ -56,7 +66,15 @@ export async function fetchFilteredInvoices(query: string, currentPage: number) 
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
-    const invoices = await prisma.$queryRaw<InvoicesTable[]>`
+    const data = await prisma.$queryRaw<Array<{
+      id: string;
+      amount: number;
+      date: Date;
+      status: string;
+      name: string;
+      email: string;
+      image_url: string;
+    }>>`
       SELECT
         invoices.id,
         invoices.amount,
@@ -76,6 +94,18 @@ export async function fetchFilteredInvoices(query: string, currentPage: number) 
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
+
+    const invoices = data.map((invoice) => ({
+      id: invoice.id,
+      amount: invoice.amount,
+      date: invoice.date.toISOString().split('T')[0],
+      status: invoice.status,
+      customer: {
+        name: invoice.name,
+        email: invoice.email,
+        image_url: invoice.image_url,
+      },
+    }));
 
     return invoices;
   } catch (error) {
