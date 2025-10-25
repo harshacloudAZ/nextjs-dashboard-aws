@@ -1,6 +1,3 @@
-import { config } from 'dotenv';
-config({ path: '.env.local' });
-
 console.log('🌱 Seed DATABASE_URL:', process.env.DATABASE_URL);
 
 import { PrismaClient } from '@prisma/client';
@@ -9,15 +6,15 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-<<<<<<< HEAD
   console.log('🌱 Starting seed...');
 
   // Clear existing data
-  console.log('🗑️  Clearing existing data...');
   await prisma.invoice.deleteMany();
   await prisma.customer.deleteMany();
   await prisma.revenue.deleteMany();
   await prisma.user.deleteMany();
+
+  console.log('✓ Cleared existing data');
 
   // Create Users
   console.log('👤 Creating users...');
@@ -32,63 +29,24 @@ async function main() {
     },
   });
 
-  // Add this to your seed script
-  const hashedPassword = await bcrypt.hash('123456', 10);
+  console.log('✓ Created users');
 
-  await prisma.user.create({
-    data: {
-      name: 'Admin',
-      email: 'user@nextmail.com',
-=======
-  console.log('Start seeding...');
-
-  // Create users
-  const hashedPassword = await bcrypt.hash('password123', 10);
-
-  await prisma.user.upsert({
-    where: { email: 'test@example.com' },
-    update: {},
-    create: {
-      email: 'test@example.com',
-      name: 'Test User',
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
-      password: hashedPassword,
-    },
-  });
-
-<<<<<<< HEAD
   // Create Customers
   console.log('👥 Creating customers...');
+
   const customers = [
     {
       id: '3958dc9e-712f-4377-85e9-fec4b6a6442a',
-=======
-  // Create customers
-  const customer1 = await prisma.customer.upsert({
-    where: { email: 'delba@oliveira.com' },
-    update: {},
-    create: {
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
       name: 'Delba de Oliveira',
       email: 'delba@oliveira.com',
       image_url: '/customers/delba-de-oliveira.png',
     },
-<<<<<<< HEAD
     {
       id: '3958dc9e-742f-4377-85e9-fec4b6a6442a',
-=======
-  });
-
-  const customer2 = await prisma.customer.upsert({
-    where: { email: 'lee@robinson.com' },
-    update: {},
-    create: {
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
       name: 'Lee Robinson',
       email: 'lee@robinson.com',
       image_url: '/customers/lee-robinson.png',
     },
-<<<<<<< HEAD
     {
       id: '3958dc9e-737f-4377-85e9-fec4b6a6442a',
       name: 'Hector Simpson',
@@ -143,8 +101,11 @@ async function main() {
     await prisma.customer.create({ data: customer });
   }
 
+  console.log('✓ Created customers');
+
   // Create Invoices
   console.log('💰 Creating invoices...');
+
   const invoices = [
     {
       customer_id: customers[0].id,
@@ -242,34 +203,12 @@ async function main() {
     await prisma.invoice.create({ data: invoice });
   }
 
+  console.log('✓ Created invoices');
+
   // Create Revenue
   console.log('📊 Creating revenue data...');
+
   const revenue = [
-=======
-  });
-
-  // Create invoices
-  await prisma.invoice.create({
-    data: {
-      customer_id: customer1.id,
-      amount: 15795, // in cents
-      status: 'pending',
-      date: new Date('2024-12-06'),
-    },
-  });
-
-  await prisma.invoice.create({
-    data: {
-      customer_id: customer2.id,
-      amount: 20348,
-      status: 'paid',
-      date: new Date('2024-11-14'),
-    },
-  });
-
-  // Create revenue data
-  const revenues = [
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
     { month: 'Jan', revenue: 2000 },
     { month: 'Feb', revenue: 1800 },
     { month: 'Mar', revenue: 2200 },
@@ -284,38 +223,20 @@ async function main() {
     { month: 'Dec', revenue: 4800 },
   ];
 
-<<<<<<< HEAD
   for (const rev of revenue) {
     await prisma.revenue.create({ data: rev });
   }
 
-  console.log('✅ Seed completed successfully!');
-  console.log('');
-  console.log('📝 You can now login with:');
-  console.log('   Email: test@example.com');
-  console.log('   Password: password123');
-=======
-  for (const rev of revenues) {
-    await prisma.revenue.upsert({
-      where: { month: rev.month },
-      update: { revenue: rev.revenue },
-      create: rev,
-    });
-  }
-
-  console.log('Seeding finished.');
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
+  console.log('✓ Created revenue data');
+  console.log('✅ Seeding completed successfully!');
 }
 
 main()
-  .catch((e) => {
-<<<<<<< HEAD
-    console.error('❌ Seed failed:', e);
-=======
-    console.error(e);
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error('❌ Seeding failed:', e);
+    await prisma.$disconnect();
+    process.exit(1);
   });
