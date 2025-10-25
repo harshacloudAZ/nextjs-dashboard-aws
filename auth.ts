@@ -1,74 +1,53 @@
-// auth.ts
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import { authConfig } from './auth.config';
 import { z } from 'zod';
+import type { User } from '@/app/lib/definitions';
+import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL } },
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
+    },
+  },
 });
 
+async function getUser(email: string): Promise<User | undefined> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+    return user || undefined;
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    throw new Error('Failed to fetch user.');
+  }
+}
+
 export const { auth, signIn, signOut, handlers } = NextAuth({
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  trustHost: true,
-  pages: { signIn: '/login' },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
+  ...authConfig,
   providers: [
     Credentials({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
       async authorize(credentials) {
-        const parsed = z.object({
-          email: z.string().email(),
-          password: z.string().min(6),
-        }).safeParse(credentials);
+        const parsedCredentials = z
+          .object({ email: z.string().email(), password: z.string().min(6) })
+          .safeParse(credentials);
 
-        if (!parsed.success) return null;
+        if (parsedCredentials.success) {
+          const { email, password } = parsedCredentials.data;
+          const user = await getUser(email);
 
-        const { email, password } = parsed.data;
+          if (!user) return null;
 
-        try {
-          const user = await prisma.user.findUnique({ where: { email } });
-          if (!user || !user.password) return null;
+          const passwordsMatch = await bcrypt.compare(password, user.password);
 
-          // Use dynamic import to avoid Edge Runtime issues
-          const bcrypt = await import('bcrypt');
-          const ok = await bcrypt.compare(password, user.password);
-          if (!ok) return null;
-
-          return { id: user.id, name: user.name ?? undefined, email: user.email };
-        } catch (error) {
-          console.error('Auth error:', error);
-          return null;
+          if (passwordsMatch) return user;
         }
+
+        return null;
       },
     }),
   ],
-  callbacks: {
-    async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
-      if (new URL(url).origin === baseUrl) return url;
-      return `${baseUrl}/dashboard`;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-      }
-      return session;
-    },
-  },
 });

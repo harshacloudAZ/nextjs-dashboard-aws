@@ -6,7 +6,15 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
+<<<<<<< HEAD
     "seed": "tsx prisma/seed.ts"
+=======
+    "seed": "node -r dotenv/config ./scripts/seed.js",
+    "seed:prisma": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+>>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -17,12 +25,14 @@
     "@types/pg": "^8.10.5",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
+    "@vercel/postgres": "^0.10.0",
     "autoprefixer": "10.4.20",
     "bcrypt": "^5.1.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "next": "14.2.18",
     "next-auth": "5.0.0-beta.25",
-    "pg": "^8.11.3",
+    "pg": "^8.16.3",
     "postcss": "8.5.1",
     "postgres": "^3.4.6",
     "prisma": "^6.17.1",
@@ -34,7 +44,13 @@
     "zod": "^3.25.17"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "dotenv": "^17.2.3",
     "tsx": "^4.20.6"
   }
 }
+=======
+    "ts-node": "^10.9.2"
+  }
+}
+>>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20

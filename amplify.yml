@@ -3,11 +3,11 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci --include=dev
+        - npm ci
         - npx prisma generate
-        - npm rebuild bcrypt --build-from-source
     build:
       commands:
+        - env | grep -i database || echo "No DATABASE_URL found"
         - npm run build
   artifacts:
     baseDirectory: .next
@@ -17,3 +17,11 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+env:
+  variables:
+    SKIP_ENV_VALIDATION: "1"
+    NODE_ENV: production
+compute:
+  resourceType: ssr
+  serverSettings:
+    runtime: nodejs18
