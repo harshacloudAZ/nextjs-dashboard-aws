@@ -7,7 +7,6 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
-<<<<<<< HEAD
 const prisma = new PrismaClient({
   datasources: {
     db: {
@@ -15,59 +14,6 @@ const prisma = new PrismaClient({
     },
   },
 });
-
-export type State = {
-  errors?: {
-    customerId?: string[];
-    amount?: string[];
-    status?: string[];
-  };
-  message?: string | null;
-};
-
-export async function authenticate(
-  prevState: string | undefined,
-  formData: FormData,
-) {
-  try {
-    const result = await signIn('credentials', {
-      email: formData.get('email') as string,
-      password: formData.get('password') as string,
-      redirect: false, // Don't redirect automatically
-    });
-
-    // Only redirect if sign in was successful
-    if (result?.error) {
-      return 'Invalid credentials.';
-    }
-
-    // Use redirect after checking for errors
-    redirect('/dashboard');
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.';
-        default:
-          return 'Something went wrong.';
-      }
-    }
-    // Re-throw redirect errors
-    throw error;
-  }
-}
-=======
-// Initialize Prisma with runtime configuration
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL ||
-        process.env.POSTGRES_URL ||
-        'postgresql://postgres:Dashboard123@nextjs-dashboard-db.cu32c6awgzh9.us-east-1.rds.amazonaws.com:5432/nextjsdb',
-    },
-  },
-});
->>>>>>> 7eac0beface41f4d4d5cc92a867ebabde76bbb20
 
 // Form validation schema
 const FormSchema = z.object({
