@@ -30,6 +30,7 @@
     "prisma": "^6.17.1",
     "react": "latest",
     "react-dom": "latest",
+    "sharp": "^0.34.4",
     "tailwindcss": "3.4.17",
     "typescript": "5.7.3",
     "use-debounce": "^10.0.4",
